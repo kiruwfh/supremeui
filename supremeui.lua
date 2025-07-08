@@ -434,6 +434,8 @@ function UILibrary.Load(GUITitle)
 			local DropdownList = Instance.new("UIListLayout")
 			DropdownList.Parent = DropdownFrame
 			
+			table.sort(DropdownArray) -- Сортируем массив перед созданием элементов
+
 			for OptionIndex, Option in next, DropdownArray do
 				PageLibrary.AddButton(Option, function()
 					Callback(Option)
