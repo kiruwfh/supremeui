@@ -405,12 +405,11 @@ function UILibrary.Load(GUITitle)
 		
 		function PageLibrary.AddDropdown(Text, ConfigurationArray, Callback)
 			local DropdownArray = ConfigurationArray or {}
-			
 			local DropdownToggle = false
 			
 			local DropdownContainer = Frame()
-			DropdownContainer.Size = UDim2.new(1,0,0,20)
 			DropdownContainer.Name = Text.."DROPDOWN"
+			DropdownContainer.Size = UDim2.new(1,0,0,20)
 			DropdownContainer.BackgroundTransparency = 1
 			DropdownContainer.Parent = DisplayPage
 			
@@ -430,26 +429,49 @@ function UILibrary.Load(GUITitle)
 			local DropdownFrame = Frame()
 			DropdownFrame.Position = UDim2.new(0,0,0,20)
 			DropdownFrame.BackgroundTransparency = 1
-			DropdownFrame.Size = UDim2.new(1,0,0,#DropdownArray*20)
 			DropdownFrame.Parent = DropdownForeground
 			
-			local DropdownList = Instance.new("UIListLayout")
-			DropdownList.SortOrder = Enum.SortOrder.LayoutOrder
-			DropdownList.Parent = DropdownFrame
-			
-			for OptionIndex, Option in ipairs(DropdownArray) do
-				local button = PageLibrary.AddButton(Option, function()
-					Callback(Option)
-					DropdownLabel.Text = Text..": "..Option
-				end, DropdownFrame, false)
-				button.LayoutOrder = OptionIndex
+			local function RecreateOptions(options)
+				DropdownArray = options
+				for _, child in ipairs(DropdownFrame:GetChildren()) do
+					child:Destroy()
+				end
+
+				local DropdownList = Instance.new("UIListLayout")
+				DropdownList.SortOrder = Enum.SortOrder.LayoutOrder
+				DropdownList.Parent = DropdownFrame
+
+				for OptionIndex, Option in ipairs(DropdownArray) do
+					local button = PageLibrary.AddButton(Option, function()
+						Callback(Option)
+						DropdownLabel.Text = Text..": "..Option
+						-- Close dropdown on selection
+						DropdownToggle = false
+						Tween(DropdownContainer, {Size = UDim2.new(1,0,0,20)})
+						Tween(DropdownExpander, {Rotation = 0})
+					end, DropdownFrame, false)
+					button.LayoutOrder = OptionIndex
+				end
+				local elementCount = #DropdownArray
+				DropdownFrame.Size = UDim2.new(1,0,0,elementCount * 20)
 			end
 			
+			RecreateOptions(ConfigurationArray)
+
 			DropdownExpander.MouseButton1Down:Connect(function()
 				DropdownToggle = not DropdownToggle
-				Tween(DropdownContainer, {Size = DropdownToggle and UDim2.new(1,0,0,20+(#DropdownArray*20)) or UDim2.new(1,0,0,20)})
+				local elementCount = #DropdownArray
+				Tween(DropdownContainer, {Size = DropdownToggle and UDim2.new(1,0,0,20 + (elementCount * 20)) or UDim2.new(1,0,0,20)})
 				Tween(DropdownExpander, {Rotation = DropdownToggle and 135 or 0})
 			end)
+			
+			local API = {}
+			function API:Update(newOptions)
+				RecreateOptions(newOptions)
+				DropdownLabel.Text = Text -- Reset label
+			end
+			
+			return API
 		end
 		
 		function PageLibrary.AddColourPicker(Text, DefaultColour, Callback)
