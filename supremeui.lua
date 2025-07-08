@@ -669,6 +669,7 @@ function UILibrary.Load(GUITitle)
 		return PageLibrary
 	end
 	
+	TabLibrary.ContainerFrame = ContainerFrame
 	return TabLibrary
 end
 
