@@ -441,7 +441,7 @@ function UILibrary.Load(GUITitle)
 				local button = PageLibrary.AddButton(Option, function()
 					Callback(Option)
 					DropdownLabel.Text = Text..": "..Option
-				end, DropdownFrame, OptionIndex < #DropdownArray)
+				end, DropdownFrame, false)
 				button.LayoutOrder = OptionIndex
 			end
 			
