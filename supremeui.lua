@@ -21,8 +21,9 @@ local IconLibraryID2 = "rbxassetid://3926307971"
 
 local MainFont = Enum.Font.Gotham
 
-local function GetXY(GuiObject)
-	local X, Y = Mouse.X - GuiObject.AbsolutePosition.X, Mouse.Y - GuiObject.AbsolutePosition.Y
+local function GetXY(GuiObject, inputObject)
+	local position = inputObject and inputObject.Position or Vector2.new(Mouse.X, Mouse.Y)
+	local X, Y = position.X - GuiObject.AbsolutePosition.X, position.Y - GuiObject.AbsolutePosition.Y
 	local MaxX, MaxY = GuiObject.AbsoluteSize.X, GuiObject.AbsoluteSize.Y
 	X, Y = math.clamp(X, 0, MaxX), math.clamp(Y, 0, MaxY)
 	return X, Y, X/MaxX, Y/MaxY
@@ -255,21 +256,27 @@ function UILibrary.Load(GUITitle)
 		end
 	end)
 	
-	TitleButton.MouseButton1Down:Connect(function()
-		local LastMX, LastMY = Mouse.X, Mouse.Y
-		local Move, Kill
-		Move = Mouse.Move:Connect(function()
-			local NewMX, NewMY = Mouse.X, Mouse.Y
-			local DX, DY = NewMX - LastMX, NewMY - LastMY
-			ContainerFrame.Position += UDim2.new(0,DX,0,DY)
-			LastMX, LastMY = NewMX, NewMY
-		end)
-		Kill = UserInputService.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				Move:Disconnect()
-				Kill:Disconnect()
-			end
-		end)
+	TitleButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			local dragStart = input.Position
+			local startPos = ContainerFrame.Position
+			
+			local dragConnection
+			dragConnection = UserInputService.InputChanged:Connect(function(inputChanged)
+				if inputChanged.UserInputType == Enum.UserInputType.MouseMovement or inputChanged.UserInputType == Enum.UserInputType.Touch then
+					local delta = inputChanged.Position - dragStart
+					ContainerFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+				end
+			end)
+			
+			local endConnection
+			endConnection = UserInputService.InputEnded:Connect(function(inputEnded)
+				if inputEnded.UserInputType == Enum.UserInputType.MouseButton1 or inputEnded.UserInputType == Enum.UserInputType.Touch then
+					if dragConnection then dragConnection:Disconnect() end
+					if endConnection then endConnection:Disconnect() end
+				end
+			end)
+		end
 	end)
 	
 	Level += 1
@@ -454,6 +461,10 @@ function UILibrary.Load(GUITitle)
 				end
 				local elementCount = #DropdownArray
 				DropdownFrame.Size = UDim2.new(1,0,0,elementCount * 20)
+				
+				if DropdownToggle then
+					Tween(DropdownContainer, {Size = UDim2.new(1,0,0,20 + (elementCount * 20))})
+				end
 			end
 			
 			RecreateOptions(ConfigurationArray)
@@ -609,31 +620,36 @@ function UILibrary.Load(GUITitle)
 			SliderFill.ImageTransparency = 0.7
 			SliderFill.Parent = SliderButton
 			
-			SliderButton.MouseButton1Down:Connect(function()
-				Tween(SliderFill, {ImageTransparency = 0.5})
-				local X, Y, XScale, YScale = GetXY(SliderButton)
+			local function updateSlider(input)
+				local _, _, XScale, _ = GetXY(SliderButton, input)
 				local Value = math.floor(Minimum + ((Maximum - Minimum) * XScale))
 				Callback(Value)
 				SliderButton.Text = Text..": "..tostring(Value)
-				local TargetSize = UDim2.new(XScale,0,1,0)
+				local TargetSize = UDim2.new(XScale, 0, 1, 0)
 				Tween(SliderFill, {Size = TargetSize})
-				local SliderMove, SliderKill
-				SliderMove = Mouse.Move:Connect(function()
+			end
+
+			SliderButton.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					Tween(SliderFill, {ImageTransparency = 0.5})
-					local X, Y, XScale, YScale = GetXY(SliderButton)
-					local Value = math.floor(Minimum + ((Maximum - Minimum) * XScale))
-					Callback(Value)
-					SliderButton.Text = Text..": "..tostring(Value)
-					local TargetSize = UDim2.new(XScale,0,1,0)
-					Tween(SliderFill, {Size = TargetSize})
-				end)
-				SliderKill = UserInputService.InputEnded:Connect(function(UserInput)
-					if UserInput.UserInputType == Enum.UserInputType.MouseButton1 then
-						Tween(SliderFill, {ImageTransparency = 0.7})
-						SliderMove:Disconnect()
-						SliderKill:Disconnect()
-					end
-				end)
+					updateSlider(input)
+					
+					local moveConnection, endConnection
+					
+					moveConnection = UserInputService.InputChanged:Connect(function(inputChanged)
+						if inputChanged.UserInputType == Enum.UserInputType.MouseMovement or inputChanged.UserInputType == Enum.UserInputType.Touch then
+						   updateSlider(inputChanged)
+						end
+					end)
+					
+					endConnection = UserInputService.InputEnded:Connect(function(inputEnded)
+						if inputEnded.UserInputType == Enum.UserInputType.MouseButton1 or inputEnded.UserInputType == Enum.UserInputType.Touch then
+							Tween(SliderFill, {ImageTransparency = 0.7})
+							if moveConnection then moveConnection:Disconnect() end
+							if endConnection then endConnection:Disconnect() end
+						end
+					end)
+				end
 			end)
 		end
 		
