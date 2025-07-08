@@ -382,6 +382,8 @@ function UILibrary.Load(GUITitle)
 				Tween(ButtonForeground, {ImageColor3 = Color3.fromRGB(35,35,35)})
 				Tween(HiddenButton, {TextTransparency = 0})
 			end)
+
+			return ButtonContainer
 		end
 		
 		function PageLibrary.AddLabel(Text)
@@ -432,15 +434,15 @@ function UILibrary.Load(GUITitle)
 			DropdownFrame.Parent = DropdownForeground
 			
 			local DropdownList = Instance.new("UIListLayout")
+			DropdownList.SortOrder = Enum.SortOrder.LayoutOrder
 			DropdownList.Parent = DropdownFrame
 			
-			table.sort(DropdownArray) -- Сортируем массив перед созданием элементов
-
-			for OptionIndex, Option in next, DropdownArray do
-				PageLibrary.AddButton(Option, function()
+			for OptionIndex, Option in ipairs(DropdownArray) do
+				local button = PageLibrary.AddButton(Option, function()
 					Callback(Option)
 					DropdownLabel.Text = Text..": "..Option
 				end, DropdownFrame, OptionIndex < #DropdownArray)
+				button.LayoutOrder = OptionIndex
 			end
 			
 			DropdownExpander.MouseButton1Down:Connect(function()
